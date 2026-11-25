@@ -614,26 +614,66 @@ body {
 
 <script>
 
-/* CHAT */
+/* CHAT - REAL AI */
 
-function sendMessage() {
+let chatHistory = [];
+
+async function sendMessage() {
 
     let input = document.getElementById("userInput");
     let text = input.value.trim();
 
-    if(text === "") return;
+    if (text === "") return;
 
     addMessage(text, "user");
-
     input.value = "";
 
-    setTimeout(() => {
+    chatHistory.push({
+        role: "user",
+        content: text
+    });
 
-        let reply = getReply(text);
+    addMessage("XODEQ AI is thinking...", "bot");
+
+    let messagesBox = document.getElementById("chatMessages");
+    let thinkingMessage = messagesBox.lastElementChild;
+
+    try {
+
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                messages: chatHistory
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "AI server error");
+        }
+
+        thinkingMessage.remove();
+
+        let reply = data.reply;
 
         addMessage(reply, "bot");
 
-    }, 700);
+        chatHistory.push({
+            role: "assistant",
+            content: reply
+        });
+
+    } catch (error) {
+
+        thinkingMessage.textContent =
+            "Unable to connect to XODEQ AI. Please try again.";
+
+        console.error("Chat error:", error);
+    }
 }
 
 function addMessage(text, type) {
@@ -647,29 +687,6 @@ function addMessage(text, type) {
     messages.appendChild(div);
 
     messages.scrollTop = messages.scrollHeight;
-}
-
-function getReply(text) {
-
-    text = text.toLowerCase();
-
-    if(text.includes("servo") || text.includes("drive")) {
-        return "Servo Troubleshooting:\\n\\n1. Check the alarm code displayed on the servo drive.\\n2. Verify motor and encoder connections.\\n3. Check power supply voltage.\\n4. Inspect emergency stop and enable signals.\\n5. Do not change parameters without backup.\\n\\nPlease share the servo drive model and alarm code for further assistance.";
-    }
-
-    if(text.includes("cnc") || text.includes("axis") || text.includes("controller")) {
-        return "CNC Troubleshooting:\\n\\n1. Check controller power.\\n2. Verify servo enable status.\\n3. Check pulse and direction signals.\\n4. Check limit switches and emergency stop.\\n5. Verify axis parameters.\\n\\nPlease share the controller model and error message.";
-    }
-
-    if(text.includes("laser") || text.includes("cutting")) {
-        return "Fiber Laser Support:\\n\\n1. Check laser source status.\\n2. Verify cutting head nozzle condition.\\n3. Check focus position.\\n4. Verify gas pressure and gas purity.\\n5. Inspect protective lens.\\n\\nPlease provide machine model, material, thickness and cutting parameters.";
-    }
-
-    if(text.includes("alarm") || text.includes("error") || text.includes("fault")) {
-        return "Let's diagnose the machine fault.\\n\\nPlease provide:\\n1. Machine / product model\\n2. Exact alarm code\\n3. Photo of the alarm screen\\n4. What happened before the alarm\\n\\nI will help you identify the possible cause and troubleshooting steps.";
-    }
-
-    return "Thank you for contacting XODEQ Technical Support.\\n\\nPlease share more details about your problem:\\n• Product model\\n• Machine type\\n• Error or alarm code\\n• Photo or screenshot\\n• What exactly is happening\\n\\nOur technical support system can help you troubleshoot step by step.";
 }
 
 /* CATEGORY */
